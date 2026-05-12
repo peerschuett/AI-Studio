@@ -5934,6 +5934,9 @@ UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2107463087"] = "Wir haben ve
 -- The tool calling request failed with status code {0}. The provider message is: '{1}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2584985559"] = "Die Tool-Aufrufanfrage ist mit dem Statuscode {0} fehlgeschlagen. Die Meldung des Anbieters lautet: „{1}“"
 
+-- The tool calling request failed with status code {0}. See the logs for details.
+UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T3117779001"] = "Die Tool-Aufrufanfrage ist mit dem Statuscode {0} fehlgeschlagen. Details finden Sie in den Logs."
+
 -- We tried to communicate with the LLM provider '{0}' (type={1}). Something was not found. The provider message is: '{2}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T3014737766"] = "Wir haben versucht, mit dem LLM-Anbieter „{0}“ (Typ={1}) zu kommunizieren. Etwas wurde nicht gefunden. Die Nachricht des Anbieters lautet: „{2}“"
 
