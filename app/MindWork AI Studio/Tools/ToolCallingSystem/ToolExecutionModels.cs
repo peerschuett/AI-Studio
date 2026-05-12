@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
+using AIStudio.Provider;
 using AIStudio.Settings;
 
 namespace AIStudio.Tools.ToolCallingSystem;
@@ -90,6 +91,8 @@ public sealed class ToolCatalogItem
     public required IToolImplementation Implementation { get; init; }
 
     public required ToolConfigurationState ConfigurationState { get; init; }
+
+    public ConfidenceLevel MinimumProviderConfidence { get; init; } = ConfidenceLevel.NONE;
 }
 
 public sealed class ToolSelectionState
