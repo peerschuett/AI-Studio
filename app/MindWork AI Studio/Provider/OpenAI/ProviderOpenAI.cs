@@ -5,6 +5,7 @@ using System.Text.Json;
 
 using AIStudio.Chat;
 using AIStudio.Settings;
+using AIStudio.Tools.ToolCallingSystem;
 
 namespace AIStudio.Provider.OpenAI;
 
@@ -78,11 +79,12 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, "https
         //
         // Prepare the tools we want to use:
         //
-        IList<ProviderTool> providerTools = modelCapabilities.Contains(Capability.WEB_SEARCH) switch
-        {
-            true => [ ProviderTools.WEB_SEARCH ],
-            _ => []
-        };
+        var providerConfidence = this.Provider.GetConfidence(settingsManager).Level;
+        var minimumWebSearchConfidence = settingsManager.GetMinimumProviderConfidenceForTool(ToolSelectionRules.WEB_SEARCH_TOOL_ID);
+        var isWebSearchAllowed = ToolSelectionRules.IsProviderConfidenceAllowed(providerConfidence, minimumWebSearchConfidence);
+        IList<ProviderTool> providerTools = modelCapabilities.Contains(Capability.WEB_SEARCH) && isWebSearchAllowed
+            ? [ ProviderTools.WEB_SEARCH ]
+            : [];
         
         
         // Parse the API parameters:

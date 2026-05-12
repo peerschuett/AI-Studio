@@ -5,26 +5,28 @@ namespace AIStudio.Tools.ToolCallingSystem.ToolCallingImplementations;
 
 public sealed class GetCurrentWeatherTool : IToolImplementation
 {
+    private static string TB(string fallbackEN) => I18N.I.T(fallbackEN, typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool));
+
     public string ImplementationKey => "get_current_weather";
 
     public string Icon => Icons.Material.Filled.Cloud;
 
     public IReadOnlySet<string> SensitiveTraceArgumentNames => new HashSet<string>(StringComparer.Ordinal);
 
-    public string GetDisplayName() => I18N.I.T("Current Weather", typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool));
+    public string GetDisplayName() => TB("Current Weather");
 
-    public string GetDescription() => I18N.I.T("Use this demo tool to retrieve the current weather for a given city and state. It is primarily meant to demonstrate tool calling and tool settings in AI Studio.", typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool));
+    public string GetDescription() => TB("Use this demo tool to retrieve the current weather for a given city and state. It is primarily meant to demonstrate tool calling and tool settings in AI Studio.");
 
     public string GetSettingsFieldLabel(string fieldName, ToolSettingsFieldDefinition fieldDefinition) => fieldName switch
     {
-        "demoLabel" => I18N.I.T("Demo Label", typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool)),
-        _ => I18N.I.T(fieldDefinition.Title, typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool)),
+        "demoLabel" => TB("Demo Label"),
+        _ => TB(fieldDefinition.Title),
     };
 
     public string GetSettingsFieldDescription(string fieldName, ToolSettingsFieldDefinition fieldDefinition) => fieldName switch
     {
-        "demoLabel" => I18N.I.T("Required demo setting for validating tool settings in tests. It does not affect the weather result.", typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool)),
-        _ => I18N.I.T(fieldDefinition.Description, typeof(GetCurrentWeatherTool).Namespace, nameof(GetCurrentWeatherTool)),
+        "demoLabel" => TB("Required demo setting for validating tool settings in tests. It does not affect the weather result."),
+        _ => TB(fieldDefinition.Description),
     };
 
     public Task<ToolExecutionResult> ExecuteAsync(JsonElement arguments, ToolExecutionContext context, CancellationToken token = default)

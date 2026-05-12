@@ -7,6 +7,8 @@ namespace AIStudio.Tools.ToolCallingSystem.ToolCallingImplementations;
 
 public sealed class ReadWebPageTool(HTMLParser htmlParser) : IToolImplementation
 {
+    private static string TB(string fallbackEN) => I18N.I.T(fallbackEN, typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool));
+
     private const int DEFAULT_TIMEOUT_SECONDS = 30;
     private const int DEFAULT_MAX_CONTENT_CHARACTERS = 12000;
     private const int MAX_TRACE_LENGTH = 12000;
@@ -32,22 +34,22 @@ public sealed class ReadWebPageTool(HTMLParser htmlParser) : IToolImplementation
 
     public IReadOnlySet<string> SensitiveTraceArgumentNames => new HashSet<string>(StringComparer.Ordinal);
 
-    public string GetDisplayName() => I18N.I.T("Read Web Page", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool));
+    public string GetDisplayName() => TB("Read Web Page");
 
-    public string GetDescription() => I18N.I.T("Load a single web page, extract its main HTML content, and return structured working material for the model. Use the result to synthesize a natural-language answer instead of exposing the raw payload to the user.", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool));
+    public string GetDescription() => TB("Load a single web page, extract its main HTML content, and return structured working material for the model. Use the result to synthesize a natural-language answer instead of exposing the raw payload to the user.");
 
     public string GetSettingsFieldLabel(string fieldName, ToolSettingsFieldDefinition fieldDefinition) => fieldName switch
     {
-        "timeoutSeconds" => I18N.I.T("Timeout Seconds", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
-        "maxContentCharacters" => I18N.I.T("Maximum Content Characters", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
-        _ => I18N.I.T(fieldDefinition.Title, typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
+        "timeoutSeconds" => TB("Timeout Seconds"),
+        "maxContentCharacters" => TB("Maximum Content Characters"),
+        _ => TB(fieldDefinition.Title),
     };
 
     public string GetSettingsFieldDescription(string fieldName, ToolSettingsFieldDefinition fieldDefinition) => fieldName switch
     {
-        "timeoutSeconds" => I18N.I.T("Optional HTTP timeout for loading a web page in seconds.", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
-        "maxContentCharacters" => I18N.I.T("Optional global truncation limit for extracted Markdown returned to the model.", typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
-        _ => I18N.I.T(fieldDefinition.Description, typeof(ReadWebPageTool).Namespace, nameof(ReadWebPageTool)),
+        "timeoutSeconds" => TB("Optional HTTP timeout for loading a web page in seconds."),
+        "maxContentCharacters" => TB("Optional global truncation limit for extracted Markdown returned to the model."),
+        _ => TB(fieldDefinition.Description),
     };
 
     public Task<ToolConfigurationState?> ValidateConfigurationAsync(
