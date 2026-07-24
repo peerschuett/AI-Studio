@@ -49,11 +49,15 @@ Keep this difference contained in provider adapter code. `ProviderToolAdapters` 
 
 Tool result handling also differs by API. Chat Completions returns tool calls in `message.tool_calls` and receives results as `role: "tool"` messages. Responses returns `function_call` output items and receives results as `function_call_output` input items correlated by `call_id`. Both paths still execute local tools through `ToolExecutor`, so validation, provider confidence checks, trace formatting, and blocked-call behavior stay shared.
 
+AI Studio currently executes local tool calls sequentially. Therefore, Chat Completions requests with tools always set `parallel_tool_calls` to `false`, limiting each model response to at most one tool call. Requests without tools omit the parameter, and additional API parameters cannot override this behavior. Models can still request additional tools across subsequent responses.
+
+The OpenAI Responses API may continue to return multiple function calls in one response. AI Studio processes those calls sequentially as well; concurrent execution of separate local tool calls is not currently implemented. This does not restrict concurrency used internally by an individual tool.
+
 If a tool throws `ToolExecutionBlockedException`, `ToolExecutor` returns the exception message as plain text to the model and records the trace as `BLOCKED`. Other exceptions are logged with details and returned to the model as plain text in the form `Tool execution failed: ...`, with the trace recorded as `ERROR`.
 
 ## Definition File
 
-Create one JSON file per tool under `wwwroot/tool_definitions`. The file describes the user-visible tool metadata, optional settings, the function schema sent to the model, and optional per-tool policy guidance injected centrally into the system prompt.
+Create one JSON file per tool under `wwwroot/tool_definitions`. The file describes component visibility, optional settings, the function schema sent to the model, and optional per-tool policy guidance injected centrally into the system prompt. User-visible names and icons come from the registered `IToolImplementation`, not the JSON definition.
 
 Example:
 
@@ -64,7 +68,14 @@ Example:
   "implementationKey": "get_current_weather",
   "visibleIn": {
     "chat": true,
-    "assistants": true
+    "assistants": true,
+    "allowedComponents": [
+      "chat",
+      "translation_assistant"
+    ],
+    "deniedComponents": [
+      "legal_check_assistant"
+    ]
   },
   "settingsSchema": {
     "type": "object",
@@ -115,6 +126,8 @@ Example:
 ```
 
 Use stable lower-case IDs with underscores. Keep `id`, `implementationKey`, and `function.name` identical unless there is a clear compatibility reason not to.
+
+`visibleIn.allowedComponents` and `visibleIn.deniedComponents` are optional lists of `Components` enum values written in `snake_case`. Unknown values make the definition invalid. When both lists are empty, the legacy `chat` and `assistants` flags apply. As soon as either list contains an entry, the lists replace those flags: an empty allow list starts by allowing every component, a non-empty allow list allows only its entries, and the deny list is applied last and always wins.
 
 Keep `function.descriptionForLLM` focused on what the tool does. This value is mapped to the provider's function `description` field and is only shown to the LLM. Put sequencing rules, answer-format guidance, or other behavior instructions in `systemPromptInstructions`. When runnable tools are selected, their non-empty policy text is combined centrally and appended to the effective system prompt.
 
@@ -189,7 +202,7 @@ Use `ValidateConfigurationAsync` when a setting needs more than "required field 
 
 Use `SensitiveTraceArgumentNames` for model-provided arguments that must not be shown in tool traces. Do not return secrets in `TextContent`, `JsonContent`, exception messages, logs, or trace formatting.
 
-When a tool returns data that future messages must only send to providers at or above a specific confidence level, set `ToolExecutionResult.RequiredProviderConfidence`. AI Studio persists the highest requirement reached by the chat and applies it to later provider checks.
+When a tool returns data that future messages must only send to providers at or above a specific confidence level, set `ToolExecutionResult.RequiredProviderConfidence`. AI Studio persists the highest requirement reached by the chat and applies it to later provider checks. Provider instances listed in `DataSourceSecuritySettings.TrustedProviderIds` may also continue chats containing data protected this way.
 
 ## Security
 
@@ -209,9 +222,9 @@ For tools that perform network requests:
 
 Web Search does not send category or engine parameters. The SearXNG instance selects them using its own configuration.
 
-Page loading and readable Markdown extraction are shared with `read_web_page` through `WebPageRetrievalService`. The service validates DNS results and every redirect target before connecting. `web_search` always uses the public-only policy and never reads private, loopback, link-local, or otherwise non-public targets. `read_web_page` remains the independent single-URL tool and may use its configured private-host allowlist, provider-confidence check, and operating-system sign-in behavior.
+Page loading and readable Markdown extraction are shared with `read_web_page` through `WebPageRetrievalService`. The service validates DNS results and every redirect target before connecting. `web_search` always uses the public-only policy and never reads private, loopback, link-local, or otherwise non-public targets. `read_web_page` remains the independent single-URL tool and may use its configured private-host allowlist and operating-system sign-in behavior for allowed HTTPS targets. An allowed private host can only be read by a High-confidence provider or a provider instance listed in `DataSourceSecuritySettings.TrustedProviderIds`.
 
-The `web_search` result separates each hit into `search_metadata` and `page`. Top-level counters report how many ranked candidates were considered, how many unique retrievals started, how many final pages were returned, and how many candidates were omitted. Search-result URLs and final redirect URLs are deduplicated separately so metadata from merged candidates is retained with the best rank.
+The `web_search` result separates each hit into `search_metadata` and `page`. Its top-level execution metadata contains `candidate_count`, `result_count`, and `retrieval_timed_out`. Search-result URLs and final redirect URLs are deduplicated separately so metadata from merged candidates is retained with the best rank.
 
 Every successfully retrieved page with readable content is also returned as a structured tool source. The source uses the final URL after redirects and prefers the extracted page title, followed by the search-result title and URL as fallbacks. The provider collects these sources across local tool calls and attaches them to the final response under the separate “Sources used by tools” heading. Failed, blocked, empty, and duplicate retrievals do not add sources.
 
@@ -228,7 +241,7 @@ All values must be positive. The total budget must be large enough to reserve th
 
 The two tools can be selected independently. Tool policy text tells the model not to call `read_web_page` for a URL already returned by `web_search`, because the search result already contains that page's retrieved content.
 
-Every non-secret tool field that administrators should be able to manage centrally must have an explicit enterprise mapping in `ToolSettingsService`. Add its backing setting to the appropriate `Settings/DataModel` class, register it with `ManagedConfiguration.Register(...)`, process it in `PluginConfiguration`, clean leftovers in `PluginFactory.Loading`, and document its allowed values, default, and limits in `Plugins/configuration/plugin.lua`. Locked enterprise values override the local field, while editable enterprise defaults apply only until a user saves a local value. Secret fields require the existing OS-keyring path and must not be routed through plain enterprise settings.
+Every non-secret tool field that administrators should be able to manage centrally must have an explicit enterprise mapping in `ToolSettingsService`. Add its backing setting to the appropriate `Settings/DataModel` class, register it with `ManagedConfiguration.Register(...)`, process it in `PluginConfiguration`, clean leftovers in `PluginFactory.Loading`, and document its purpose, data type, and an example assignment in `Plugins/configuration/plugin.lua`. Locked enterprise values override the local field, while editable enterprise defaults apply only until a user saves a local value. Secret fields require the existing OS-keyring path and must not be routed through plain enterprise settings.
 
 ## Checklist
 
