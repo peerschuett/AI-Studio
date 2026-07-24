@@ -1064,7 +1064,7 @@ public abstract class BaseProvider : IProvider, ISecretId
                         yield break;
                     }
 
-                    var toolCalls = this.CanonicalizeToolCallNames(responseMessage.ToolCalls ?? [], runnableTools);
+                    var toolCalls = this.PrepareChatCompletionToolCalls(responseMessage.ToolCalls ?? [], runnableTools);
                     if (toolCalls.Count == 0)
                     {
                         await ResetToolRuntimeStatusAsync();
@@ -1089,34 +1089,53 @@ public abstract class BaseProvider : IProvider, ISecretId
 
                     try
                     {
-                        await ShowToolRuntimeStatusAsync(toolCalls
-                            .Select(x => runnableTools.FirstOrDefault(tool => tool.Definition.Function.Name.Equals(x.Function.Name, StringComparison.Ordinal)).Implementation?.GetDisplayName() ?? x.Function.Name));
+                        var validToolNames = toolCalls
+                            .Where(x => x.IsValid)
+                            .Select(x => runnableTools.FirstOrDefault(tool => tool.Definition.Function.Name.Equals(x.ToolCall.Function!.Name, StringComparison.Ordinal)).Implementation?.GetDisplayName() ?? x.ToolCall.Function!.Name!)
+                            .ToList();
+                        if (validToolNames.Count > 0)
+                            await ShowToolRuntimeStatusAsync(validToolNames);
 
                         internalMessages.Add(new AssistantToolCallMessage
                         {
                             Content = responseMessage.RawContent,
                             ReasoningContent = responseMessage.ReasoningContent,
-                            ToolCalls = toolCalls,
+                            ToolCalls = toolCalls.Select(x => x.ToolCall).ToList(),
                         });
 
-                        foreach (var toolCall in toolCalls)
+                        foreach (var preparedToolCall in toolCalls)
                         {
+                            var toolCall = preparedToolCall.ToolCall;
+                            if (!preparedToolCall.IsValid)
+                            {
+                                toolCallCount++;
+                                var (invalidToolContent, invalidTrace, _, _) = toolExecutor.CreateInvalidToolCallResult(toolCall.Id!, toolCallCount);
+                                toolResultCharacterCount += invalidToolContent.Length;
+                                currentAssistantContent?.ToolInvocations.Add(invalidTrace);
+                                internalMessages.Add(new ToolResultMessage
+                                {
+                                    Content = invalidToolContent,
+                                    ToolCallId = toolCall.Id!,
+                                });
+                                continue;
+                            }
+
                             var toolCallsUnavailableInstruction = ToolSelectionRules.GetToolCallsUnavailableInstruction(toolCallCount, toolResultCharacterCount);
                             if (toolCallsUnavailableInstruction is not null)
                             {
                                 internalMessages.Add(new ToolResultMessage
                                 {
                                     Content = toolCallsUnavailableInstruction,
-                                    ToolCallId = toolCall.Id,
+                                    ToolCallId = toolCall.Id!,
                                 });
                                 continue;
                             }
 
                             toolCallCount++;
                             var (toolContent, trace, requiredProviderConfidence, sources) = await toolExecutor.ExecuteAsync(
-                                toolCall.Id,
-                                toolCall.Function.Name,
-                                toolCall.Function.Arguments,
+                                toolCall.Id!,
+                                toolCall.Function!.Name!,
+                                toolCall.Function!.Arguments!,
                                 runnableTools,
                                 this,
                                 toolCallCount,
@@ -1129,7 +1148,7 @@ public abstract class BaseProvider : IProvider, ISecretId
                             internalMessages.Add(new ToolResultMessage
                             {
                                 Content = toolContent,
-                                ToolCallId = toolCall.Id,
+                                ToolCallId = toolCall.Id!,
                             });
                         }
 
@@ -1182,28 +1201,61 @@ public abstract class BaseProvider : IProvider, ISecretId
         InstanceName = this.InstanceName,
     };
 
-    private IList<ChatCompletionToolCall> CanonicalizeToolCallNames(
-        IEnumerable<ChatCompletionToolCall> toolCalls,
-        IReadOnlyList<(ToolDefinition Definition, IToolImplementation Implementation)> runnableTools) => toolCalls
-            .Select(toolCall =>
+    private IList<PreparedChatCompletionToolCall> PrepareChatCompletionToolCalls(
+        IEnumerable<ChatCompletionToolCall?> toolCalls,
+        IReadOnlyList<(ToolDefinition Definition, IToolImplementation Implementation)> runnableTools)
+    {
+        var preparedToolCalls = new List<PreparedChatCompletionToolCall>();
+        foreach (var returnedToolCall in toolCalls)
+        {
+            var toolCallId = string.IsNullOrWhiteSpace(returnedToolCall?.Id)
+                ? $"call_{Guid.NewGuid():N}"
+                : returnedToolCall.Id;
+            var returnedFunctionName = returnedToolCall?.Function?.Name;
+            var returnedArguments = returnedToolCall?.Function?.Arguments;
+            var isValid = returnedToolCall?.Function is not null &&
+                          !string.IsNullOrWhiteSpace(returnedFunctionName) &&
+                          ToolExecutor.IsValidArgumentsJson(returnedArguments);
+            var normalizedToolCall = new ChatCompletionToolCall
             {
-                var returnedName = toolCall.Function.Name;
-                var canonicalName = runnableTools
-                    .Select(x => x.Definition.Function.Name)
-                    .FirstOrDefault(x => x.Equals(returnedName.Trim(), StringComparison.Ordinal));
-                if (canonicalName is null || canonicalName.Equals(returnedName, StringComparison.Ordinal))
-                    return toolCall;
-
-                this.logger.LogWarning("Canonicalized tool call function name '{ReturnedFunctionName}' to '{CanonicalFunctionName}'.", returnedName, canonicalName);
-                return toolCall with
+                Id = toolCallId,
+                Type = string.IsNullOrWhiteSpace(returnedToolCall?.Type) ? "function" : returnedToolCall.Type,
+                Function = new ChatCompletionToolFunction
                 {
-                    Function = toolCall.Function with
+                    Name = string.IsNullOrWhiteSpace(returnedFunctionName) ? "invalid_tool_call" : returnedFunctionName,
+                    Arguments = returnedArguments ?? "{}",
+                },
+            };
+
+            if (!isValid)
+            {
+                this.logger.LogWarning("Received an invalid Chat Completions tool call. ToolCallId={ToolCallId}", toolCallId);
+                preparedToolCalls.Add(new PreparedChatCompletionToolCall(normalizedToolCall, false));
+                continue;
+            }
+
+            var canonicalName = runnableTools
+                .Select(x => x.Definition.Function.Name)
+                .FirstOrDefault(x => x.Equals(returnedFunctionName!.Trim(), StringComparison.Ordinal));
+            if (canonicalName is not null && !canonicalName.Equals(returnedFunctionName, StringComparison.Ordinal))
+            {
+                this.logger.LogWarning("Canonicalized tool call function name '{ReturnedFunctionName}' to '{CanonicalFunctionName}'.", returnedFunctionName, canonicalName);
+                normalizedToolCall = normalizedToolCall with
+                {
+                    Function = normalizedToolCall.Function! with
                     {
                         Name = canonicalName,
                     },
                 };
-            })
-            .ToList();
+            }
+
+            preparedToolCalls.Add(new PreparedChatCompletionToolCall(normalizedToolCall, true));
+        }
+
+        return preparedToolCalls;
+    }
+
+    private readonly record struct PreparedChatCompletionToolCall(ChatCompletionToolCall ToolCall, bool IsValid);
 
     private async Task<ChatCompletionResponse?> ExecuteChatCompletionRequest(
         ChatCompletionAPIRequest requestDto,

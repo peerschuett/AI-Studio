@@ -10,6 +10,44 @@ namespace AIStudio.Tools.ToolCallingSystem;
 
 public sealed class ToolExecutor(ToolSettingsService toolSettingsService, ILogger<ToolExecutor> logger)
 {
+    private const string INVALID_TOOL_CALL_ERROR = "The tool call was invalid.";
+
+    public (string Content, ToolInvocationTrace Trace, ConfidenceLevel RequiredProviderConfidence, IReadOnlyList<Source> Sources) CreateInvalidToolCallResult(
+        string toolCallId,
+        int order)
+    {
+        logger.LogWarning(
+            "Rejected invalid tool call. ToolCallId={ToolCallId}, Order={Order}, Status={Status}",
+            toolCallId,
+            order,
+            ToolInvocationTraceStatus.ERROR);
+        return (INVALID_TOOL_CALL_ERROR, new ToolInvocationTrace
+        {
+            Order = order,
+            ToolName = "Invalid tool call",
+            ToolCallId = toolCallId,
+            Status = ToolInvocationTraceStatus.ERROR,
+            StatusMessage = INVALID_TOOL_CALL_ERROR,
+            Result = INVALID_TOOL_CALL_ERROR,
+        }, ConfidenceLevel.NONE, []);
+    }
+
+    public static bool IsValidArgumentsJson(string? argumentsJson)
+    {
+        if (string.IsNullOrWhiteSpace(argumentsJson))
+            return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(argumentsJson);
+            return document.RootElement.ValueKind is JsonValueKind.Object;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     public async Task<(string Content, ToolInvocationTrace Trace, ConfidenceLevel RequiredProviderConfidence, IReadOnlyList<Source> Sources)> ExecuteAsync(
         string toolCallId,
         string toolName,

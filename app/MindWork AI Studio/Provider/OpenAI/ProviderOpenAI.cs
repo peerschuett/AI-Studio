@@ -366,6 +366,17 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
             }
 
             toolSources.MergeSources(response.GetSources());
+            var functionCalls = response.GetFunctionCalls();
+            if (functionCalls.Any(x => string.IsNullOrWhiteSpace(x.CallId)))
+            {
+                toolCallCount++;
+                var (invalidToolContent, invalidTrace, _, _) = toolExecutor.CreateInvalidToolCallResult(string.Empty, toolCallCount);
+                toolResultCharacterCount += invalidToolContent.Length;
+                currentAssistantContent?.ToolInvocations.Add(invalidTrace);
+                await ResetToolRuntimeStatusAsync(currentAssistantContent);
+                yield return new ContentStreamChunk(invalidToolContent, [..toolSources]);
+                yield break;
+            }
 
             if (finalResponseRequired)
             {
@@ -380,7 +391,6 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
                 yield break;
             }
 
-            var functionCalls = response.GetFunctionCalls();
             if (functionCalls.Count == 0)
             {
                 await ResetToolRuntimeStatusAsync(currentAssistantContent);
@@ -396,20 +406,44 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
 
             try
             {
-                await ShowToolRuntimeStatusAsync(currentAssistantContent, functionCalls
-                    .Select(x => runnableTools.FirstOrDefault(tool => tool.Definition.Function.Name.Equals(x.Name, StringComparison.Ordinal)).Implementation?.GetDisplayName() ?? x.Name));
+                var preparedFunctionCalls = functionCalls
+                    .Select(x => new PreparedResponsesFunctionCall(
+                        x,
+                        !string.IsNullOrWhiteSpace(x.Name) && ToolExecutor.IsValidArgumentsJson(x.Arguments)))
+                    .ToList();
+                var validToolNames = preparedFunctionCalls
+                    .Where(x => x.IsValid)
+                    .Select(x => runnableTools.FirstOrDefault(tool => tool.Definition.Function.Name.Equals(x.FunctionCall.Name, StringComparison.Ordinal)).Implementation?.GetDisplayName() ?? x.FunctionCall.Name!)
+                    .ToList();
+                if (validToolNames.Count > 0)
+                    await ShowToolRuntimeStatusAsync(currentAssistantContent, validToolNames);
 
                 foreach (var outputItem in response.Output)
                     internalItems.Add(outputItem);
 
-                foreach (var functionCall in functionCalls)
+                foreach (var preparedFunctionCall in preparedFunctionCalls)
                 {
+                    var functionCall = preparedFunctionCall.FunctionCall;
+                    if (!preparedFunctionCall.IsValid)
+                    {
+                        toolCallCount++;
+                        var (invalidToolContent, invalidTrace, _, _) = toolExecutor.CreateInvalidToolCallResult(functionCall.CallId!, toolCallCount);
+                        toolResultCharacterCount += invalidToolContent.Length;
+                        currentAssistantContent?.ToolInvocations.Add(invalidTrace);
+                        internalItems.Add(new ResponsesFunctionCallOutputItem
+                        {
+                            CallId = functionCall.CallId!,
+                            Output = invalidToolContent,
+                        });
+                        continue;
+                    }
+
                     var toolCallsUnavailableInstruction = ToolSelectionRules.GetToolCallsUnavailableInstruction(toolCallCount, toolResultCharacterCount);
                     if (toolCallsUnavailableInstruction is not null)
                     {
                         internalItems.Add(new ResponsesFunctionCallOutputItem
                         {
-                            CallId = functionCall.CallId,
+                            CallId = functionCall.CallId!,
                             Output = toolCallsUnavailableInstruction,
                         });
                         continue;
@@ -417,9 +451,9 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
 
                     toolCallCount++;
                     var (toolContent, trace, requiredProviderConfidence, sources) = await toolExecutor.ExecuteAsync(
-                        functionCall.CallId,
-                        functionCall.Name,
-                        functionCall.Arguments,
+                        functionCall.CallId!,
+                        functionCall.Name!,
+                        functionCall.Arguments!,
                         runnableTools,
                         this,
                         toolCallCount,
@@ -431,7 +465,7 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
                     currentAssistantContent?.ToolInvocations.Add(trace);
                     internalItems.Add(new ResponsesFunctionCallOutputItem
                     {
-                        CallId = functionCall.CallId,
+                        CallId = functionCall.CallId!,
                         Output = toolContent,
                     });
                 }
@@ -443,6 +477,8 @@ public sealed class ProviderOpenAI() : BaseProvider(LLMProviders.OPEN_AI, new Ur
             }
         }
     }
+
+    private readonly record struct PreparedResponsesFunctionCall(ResponsesFunctionCallItem FunctionCall, bool IsValid);
 
     private static async Task ResetToolRuntimeStatusAsync(ContentText? currentAssistantContent)
     {

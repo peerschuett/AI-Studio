@@ -154,15 +154,37 @@ public static partial class SourceExtensions
     }
 
     /// <summary>
-    /// Merges a list of added sources into an existing list of sources, avoiding duplicates based on URL and Title.
+    /// Merges a list of added sources into an existing list of sources, avoiding duplicates based on normalized URLs.
     /// </summary>
     /// <param name="sources">The existing list of sources to merge into.</param>
     /// <param name="addedSources">The list of sources to add.</param>
     public static void MergeSources(this IList<Source> sources, IEnumerable<ISource> addedSources)
     {
+        var sourceIdentities = sources
+            .Select(source => GetSourceIdentity(source.URL))
+            .ToHashSet(StringComparer.Ordinal);
+
         foreach (var addedSource in addedSources)
-            if (sources.All(s => s.URL != addedSource.URL && s.Title != addedSource.Title))
+        {
+            if (sourceIdentities.Add(GetSourceIdentity(addedSource.URL)))
                 sources.Add((Source)addedSource);
+        }
+    }
+
+    private static string GetSourceIdentity(string url)
+    {
+        var cleanedUrl = url.Trim().Replace("\r", string.Empty).Replace("\n", string.Empty);
+        if (!Uri.TryCreate(cleanedUrl, UriKind.Absolute, out var absoluteUri))
+            return cleanedUrl;
+
+        var normalizedUri = new UriBuilder(absoluteUri)
+        {
+            Scheme = absoluteUri.Scheme.ToLowerInvariant(),
+            Host = absoluteUri.IdnHost.TrimEnd('.').ToLowerInvariant(),
+            Port = absoluteUri.IsDefaultPort ? -1 : absoluteUri.Port,
+            Fragment = string.Empty,
+        };
+        return normalizedUri.Uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
     }
 
     [GeneratedRegex(@"^\[(?<label>[^\]]+)\]\((?<url>[^)\r\n]+)\)(?<suffix>.*)$")]

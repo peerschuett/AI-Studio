@@ -12,6 +12,22 @@ internal sealed class SearXNGSearchClient
 
     public async Task<SearXNGSearchResponse> SearchAsync(SearXNGSearchRequest searchRequest, CancellationToken token)
     {
+        try
+        {
+            return await SearchInternalAsync(searchRequest, token);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TimeoutException or InvalidOperationException or JsonException)
+        {
+            throw new InvalidOperationException("The SearXNG search request failed.", exception);
+        }
+    }
+
+    private static async Task<SearXNGSearchResponse> SearchInternalAsync(SearXNGSearchRequest searchRequest, CancellationToken token)
+    {
         var queryParameters = new List<KeyValuePair<string, string>>
         {
             new("q", searchRequest.Query),
@@ -40,7 +56,8 @@ internal sealed class SearXNGSearchClient
         var responseBody = await ReadContentAsStringWithLimitAsync(response.Content, MAX_RESPONSE_BYTES, timeoutCts.Token);
         if (!response.IsSuccessStatusCode)
         {
-            var responseDetails = string.IsNullOrWhiteSpace(responseBody) ? string.Empty : $" Response body: {responseBody[..Math.Min(responseBody.Length, 400)]}";
+            var responseExcerpt = CreateSingleLineExcerpt(responseBody);
+            var responseDetails = string.IsNullOrWhiteSpace(responseExcerpt) ? string.Empty : $" Response body: {responseExcerpt}";
             throw new InvalidOperationException($"The SearXNG request failed with status code {(int)response.StatusCode} ({response.StatusCode}).{responseDetails}");
         }
 
@@ -59,6 +76,14 @@ internal sealed class SearXNGSearchClient
 
         var candidates = BuildCandidates(responseObject["results"] as JsonArray, searchRequest.EffectiveLimit, out var candidateCount);
         return new SearXNGSearchResponse(candidates, candidateCount);
+    }
+
+    private static string CreateSingleLineExcerpt(string responseBody)
+    {
+        var sanitizedResponseBody = string.Concat(responseBody.Select(character => char.IsControl(character) ? ' ' : character));
+        var excerpt = string.Join(" ", sanitizedResponseBody
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return excerpt[..Math.Min(excerpt.Length, 400)];
     }
 
     public static bool TryNormalizeSearchUri(

@@ -5,11 +5,11 @@ namespace AIStudio.Provider.OpenAI;
 /// </summary>
 public sealed record ResponsesFunctionCallItem
 {
-    public string Type { get; init; } = string.Empty;
+    public string? Type { get; init; }
 
-    public string CallId { get; init; } = string.Empty;
+    public string? CallId { get; init; }
 
-    public string Name { get; init; } = string.Empty;
+    public string? Name { get; init; }
 
-    public string Arguments { get; init; } = string.Empty;
+    public string? Arguments { get; init; }
 }

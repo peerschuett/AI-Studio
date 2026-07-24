@@ -24,7 +24,6 @@ public sealed record ResponsesResponse
             Name = ReadString(x, "name"),
             Arguments = ReadString(x, "arguments"),
         })
-        .Where(x => !string.IsNullOrWhiteSpace(x.CallId) && !string.IsNullOrWhiteSpace(x.Name))
         .ToList();
 
     public string GetTextOutput()

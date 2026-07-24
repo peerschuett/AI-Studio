@@ -39,7 +39,7 @@ public sealed class ReadWebPageTool(WebPageRetrievalService webPageRetrievalServ
     {
         "timeoutSeconds" => TB("(Optional) HTTP timeout for loading a web page in seconds."),
         "maxContentCharacters" => TB("(Optional) Global truncation limit for extracted characters returned to the model."),
-        ALLOWED_PRIVATE_HOSTS_SETTING => TB("(Optional) Host allowlist for private or VPN web pages. For security reasons, private or VPN web pages aren't allowed to be read by default. Separate host patterns with commas, such as example.de, *.example.de. Allowed private hosts require a High-confidence provider or a provider trusted by your organization's configuration. For allowed internal hosts, AI Studio also tries the operating system's default sign-in automatically when the server responds with integrated authentication."),
+        ALLOWED_PRIVATE_HOSTS_SETTING => TB("(Optional) Host allowlist for private or VPN web pages. For security reasons, private or VPN web pages aren't allowed to be read by default. Separate host patterns with commas, such as example.de, *.example.de. Allowed private hosts require a High-confidence provider or a provider trusted by your organization's configuration. For allowed HTTPS internal hosts, AI Studio also tries the operating system's default sign-in automatically when the server responds with integrated authentication."),
         _ => TB(fieldDefinition.Description),
     };
 

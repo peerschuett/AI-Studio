@@ -375,36 +375,35 @@ CONFIG["SETTINGS"] = {}
 -- }
 
 -- Configure the Web Search tool. All values are strings.
--- WebSearchBaseUrl: required SearXNG HTTP(S) root URL or /search endpoint; no default.
+-- WebSearchBaseUrl: SearXNG HTTP(S) root URL or /search endpoint.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchBaseUrl"] = "https://searxng.website/"
--- WebSearchDefaultLanguage: optional language code; default is empty.
+-- WebSearchDefaultLanguage: language code sent to SearXNG.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchDefaultLanguage"] = "de"
--- WebSearchDefaultSafeSearch: optional SearXNG safe-search level "0", "1", or "2"; default is empty.
+-- WebSearchDefaultSafeSearch: SearXNG safe-search level "0", "1", or "2".
 -- CONFIG["SETTINGS"]["DataTools.WebSearchDefaultSafeSearch"] = "1"
--- WebSearchMaxResults: positive integer; default 5, effective maximum 20.
+-- WebSearchMaxResults: result count as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchMaxResults"] = "5"
--- WebSearchTimeoutSeconds: positive integer; default 20, effective maximum 60.
+-- WebSearchTimeoutSeconds: SearXNG request timeout in seconds as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchTimeoutSeconds"] = "20"
--- WebSearchMaxTotalContentCharacters: positive integer; default and maximum 100000.
--- maximum number of content characters per web search
+-- WebSearchMaxTotalContentCharacters: total content-character budget as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchMaxTotalContentCharacters"] = "100000"
--- WebSearchMinContentCharactersPerResult: positive integer; default and maximum 3000.
--- The total content budget must be at least this value multiplied by the hard limit of 20 results.
+-- WebSearchMinContentCharactersPerResult: per-result content allocation as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchMinContentCharactersPerResult"] = "3000"
--- WebSearchPageTimeoutSeconds: positive integer; default and maximum 30.
+-- WebSearchPageTimeoutSeconds: per-page timeout in seconds as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchPageTimeoutSeconds"] = "30"
--- WebSearchRetrievalTimeoutSeconds: positive integer; default and maximum 90.
+-- WebSearchRetrievalTimeoutSeconds: overall page-retrieval timeout in seconds as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.WebSearchRetrievalTimeoutSeconds"] = "90"
 
 -- Configure the Read Web Page tool. All values are strings.
--- ReadWebPageTimeoutSeconds: positive integer; default 30, effective maximum 60.
+-- ReadWebPageTimeoutSeconds: page-loading timeout in seconds as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.ReadWebPageTimeoutSeconds"] = "30"
--- ReadWebPageMaxContentCharacters: positive integer; default 30000, effective maximum 50000.
+-- ReadWebPageMaxContentCharacters: content-character limit as an integer string.
 -- CONFIG["SETTINGS"]["DataTools.ReadWebPageMaxContentCharacters"] = "30000"
--- ReadWebPageAllowedPrivateHosts: optional comma-separated private or VPN host patterns; default is empty.
+-- ReadWebPageAllowedPrivateHosts: comma-separated private or VPN host patterns.
 -- Public pages do not need to be listed. Wildcards only match subdomains, so add the root domain separately.
--- Allowed private hosts require a provider with HIGH confidence. AI Studio tries the current user's
--- operating-system sign-in when integrated authentication is requested, but does not reuse browser cookies.
+-- Allowed private hosts require a provider with HIGH confidence or a provider trusted by the organization.
+-- AI Studio only tries the current user's operating-system sign-in for explicitly allowed HTTPS targets
+-- when these provider requirements are met, and it does not reuse browser cookies.
 -- CONFIG["SETTINGS"]["DataTools.ReadWebPageAllowedPrivateHosts"] = "dlr.de, *.dlr.de"
 
 -- The 12 Web Search and Read Web Page settings are locked by default. Add

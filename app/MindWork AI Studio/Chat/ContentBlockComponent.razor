@@ -202,12 +202,13 @@
                                     }
                                 </div>
 
-                                @if (this.Role is ChatRole.AI && !string.IsNullOrWhiteSpace(textContent.ToolRuntimeStatus.Message))
-                                {
-                                    <MudAlert Dense="@true" Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
-                                        @textContent.ToolRuntimeStatus.Message
-                                    </MudAlert>
-                                }
+                            }
+
+                            @if (this.Role is ChatRole.AI && !string.IsNullOrWhiteSpace(textContent.ToolRuntimeStatus.Message))
+                            {
+                                <MudAlert Dense="@true" Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                                    @textContent.ToolRuntimeStatus.Message
+                                </MudAlert>
                             }
                         }
                     }

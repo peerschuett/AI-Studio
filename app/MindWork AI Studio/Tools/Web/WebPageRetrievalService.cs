@@ -153,6 +153,7 @@ public sealed class WebPageRetrievalService(HTMLParser htmlParser)
         WebPageRetrievalOptions options) =>
         options.UseOsSso &&
         (options.ProviderConfidence >= ConfidenceLevel.HIGH || options.ProviderIsTrustedByConfiguration) &&
+        candidateUrl.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) &&
         originalUrl.Scheme.Equals(candidateUrl.Scheme, StringComparison.OrdinalIgnoreCase) &&
         originalUrl.Host.Equals(candidateUrl.Host, StringComparison.OrdinalIgnoreCase) &&
         originalUrl.Port == candidateUrl.Port &&

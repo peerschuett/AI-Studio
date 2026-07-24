@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using AIStudio.Provider;
 using AIStudio.Settings;
@@ -49,6 +50,7 @@ public sealed class ToolRegistry
         {
             PropertyNameCaseInsensitive = true,
         };
+        serializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower, allowIntegerValues: false));
 
         var functionNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var file in definitionsDirectory.Where(x => !x.IsDirectory && x.Name.EndsWith(".json", StringComparison.OrdinalIgnoreCase)))
@@ -129,6 +131,16 @@ public sealed class ToolRegistry
             return false;
         }
 
+        if (definition.VisibleIn is null ||
+            definition.VisibleIn.AllowedComponents is null ||
+            definition.VisibleIn.DeniedComponents is null ||
+            definition.VisibleIn.AllowedComponents.Any(component => !Enum.IsDefined(component)) ||
+            definition.VisibleIn.DeniedComponents.Any(component => !Enum.IsDefined(component)))
+        {
+            issue = "the visibility definition must contain valid component lists";
+            return false;
+        }
+
         if (definition.SettingsSchema is null ||
             !string.Equals(definition.SettingsSchema.Type, "object", StringComparison.OrdinalIgnoreCase) ||
             definition.SettingsSchema.Properties is null ||
@@ -173,9 +185,8 @@ public sealed class ToolRegistry
 
     public IReadOnlyList<ToolDefinition> GetDefinitionsForComponent(AIStudio.Tools.Components component)
     {
-        var isChat = component is AIStudio.Tools.Components.CHAT;
         return this.definitionsById.Values
-            .Where(x => isChat ? x.VisibleIn.Chat : x.VisibleIn.Assistants)
+            .Where(x => x.VisibleIn.IsVisibleIn(component))
             .OrderBy(x => this.implementationsByKey.GetValueOrDefault(x.ImplementationKey)?.GetDisplayName(), StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
