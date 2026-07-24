@@ -7645,6 +7645,9 @@ UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T1999987800"] = "We tried to 
 -- We tried to communicate with the LLM provider '{0}' (type={1}). You might not be able to use this provider from your location. The provider message is: '{2}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2107463087"] = "We tried to communicate with the LLM provider '{0}' (type={1}). You might not be able to use this provider from your location. The provider message is: '{2}'"
 
+-- The provider '{0}' returned an invalid tool calling response. Check the provider's tool calling configuration and see the logs for details.
+UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2768311456"] = "The provider '{0}' returned an invalid tool calling response. Check the provider's tool calling configuration and see the logs for details."
+
 -- We tried to communicate with the LLM provider '{0}' (type={1}). Something was not found. The provider message is: '{2}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T3014737766"] = "We tried to communicate with the LLM provider '{0}' (type={1}). Something was not found. The provider message is: '{2}'"
 

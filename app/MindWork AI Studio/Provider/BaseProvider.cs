@@ -1057,13 +1057,28 @@ public abstract class BaseProvider : IProvider, ISecretId
                         ParallelToolCalls = requestDtoBase.Tools is null ? null : false,
                     };
                     var response = await this.ExecuteChatCompletionRequest(requestDto, requestPath, requestedSecret, headersAction, token);
-                    var responseMessage = response?.Choices.FirstOrDefault()?.Message;
-                    if (responseMessage is null)
+                    if (response is null)
                     {
                         await ResetToolRuntimeStatusAsync();
                         yield break;
                     }
 
+                    var responseChoice = response.Choices?.FirstOrDefault();
+                    if (responseChoice is null || responseChoice.Message is null)
+                    {
+                        this.logger.LogError(
+                            "The tool calling response did not contain a usable choice. ProviderInstanceName={ProviderInstanceName}, ProviderType={ProviderType}, ModelId={ModelId}, ChoiceCount={ChoiceCount}",
+                            this.InstanceName,
+                            this.Provider,
+                            chatModel.Id,
+                            response.Choices?.Count ?? 0);
+                        await ResetToolRuntimeStatusAsync();
+                        throw new ProviderRequestException(
+                            ProviderRequestFailureReason.NONE,
+                            string.Format(TB("The provider '{0}' returned an invalid tool calling response. Check the provider's tool calling configuration and see the logs for details."), this.InstanceName));
+                    }
+
+                    var responseMessage = responseChoice.Message;
                     var toolCalls = this.PrepareChatCompletionToolCalls(responseMessage.ToolCalls ?? [], runnableTools);
                     if (toolCalls.Count == 0)
                     {
@@ -1072,6 +1087,20 @@ public abstract class BaseProvider : IProvider, ISecretId
                             yield return new ContentStreamChunk(responseMessage.Content, [..toolSources]);
                         else if (toolCallCount > 0)
                             yield return new ContentStreamChunk("The model completed the tool call but did not return a final answer.", [..toolSources]);
+                        else
+                        {
+                            this.logger.LogError(
+                                "The tool calling response did not contain text or tool calls. ProviderInstanceName={ProviderInstanceName}, ProviderType={ProviderType}, ModelId={ModelId}, FinishReason={FinishReason}, Role={Role}, HasReasoningContent={HasReasoningContent}",
+                                this.InstanceName,
+                                this.Provider,
+                                chatModel.Id,
+                                responseChoice.FinishReason,
+                                responseMessage.Role,
+                                !string.IsNullOrWhiteSpace(responseMessage.ReasoningContent));
+                            throw new ProviderRequestException(
+                                ProviderRequestFailureReason.NONE,
+                                string.Format(TB("The provider '{0}' returned an invalid tool calling response. Check the provider's tool calling configuration and see the logs for details."), this.InstanceName));
+                        }
 
                         yield break;
                     }

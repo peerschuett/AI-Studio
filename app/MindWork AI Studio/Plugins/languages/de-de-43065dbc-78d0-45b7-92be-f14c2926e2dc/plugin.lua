@@ -3213,6 +3213,9 @@ UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T1364944735"]
 -- Additional root certificates are enabled
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T1380446131"] = "Zusätzliche Stammzertifikate sind aktiviert"
 
+-- You have selected 1 preview feature.
+UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T1384241824"] = "Sie haben 1 Vorschaufunktion ausgewählt."
+
 -- Select preview features
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T1439783084"] = "Vorschaufunktionen auswählen"
 
@@ -3288,6 +3291,9 @@ UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T2655930524"]
 -- Path to a PEM file containing one or more root CA certificates. For Flatpak deployments, this file must be placed in a location that is readable inside the sandbox.
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T2700836219"] = "Pfad zu einer PEM-Datei mit einem oder mehreren Root-CA-Zertifikaten. Bei Flatpak-Bereitstellungen muss diese Datei an einem Ort abgelegt werden, der innerhalb der Sandbox lesbar ist."
 
+-- No preview features selected.
+UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T2809641588"] = "Keine Vorschau-Funktionen ausgewählt."
+
 -- Enter one host pattern per line. Exact hosts such as data.intra.example.org and one-label wildcards such as *.intra.example.org are supported. Cloud provider endpoints built into AI Studio, such as OpenAI, Google, etc., never use these additional root certificates.
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T2960110864"] = "Geben Sie pro Zeile ein Hostmuster ein. Exakte Hosts wie data.intra.example.org sowie Wildcards mit einem Label wie *.intra.example.org werden unterstützt. In AI Studio integrierte Endpunkte von Cloud-Anbietern wie OpenAI, Google usw. verwenden diese zusätzlichen Stammzertifikate nicht."
 
@@ -3299,6 +3305,9 @@ UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T3165555978"]
 
 -- External HTTPS certificates
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T348936513"] = "Externe HTTPS-Zertifikate"
+
+-- You have selected {0} preview features.
+UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T3513450626"] = "Sie haben {0} Vorschau-Funktionen ausgewählt."
 
 -- Allowed hosts for additional root certificates
 UI_TEXT_CONTENT["AISTUDIO::COMPONENTS::SETTINGS::SETTINGSPANELAPP::T3562495752"] = "Zugelassene Hosts für zusätzliche Stammzertifikate"
@@ -7638,6 +7647,9 @@ UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T1999987800"] = "Wir haben ve
 -- We tried to communicate with the LLM provider '{0}' (type={1}). You might not be able to use this provider from your location. The provider message is: '{2}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2107463087"] = "Wir haben versucht, mit dem LLM-Anbieter „{0}“ (Typ={1}) zu kommunizieren. Möglicherweise können Sie diesen Anbieter von Ihrem Standort aus nicht nutzen. Die Nachricht des Anbieters lautet: „{2}“."
 
+-- The provider '{0}' returned an invalid tool calling response. Check the provider's tool calling configuration and see the logs for details.
+UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T2768311456"] = "Der Anbieter '{0}' hat eine ungültige Tool-Aufruf-Antwort zurückgegeben. Überprüfen Sie die Tool-Aufruf-Konfiguration des Anbieters und sehen Sie sich die Protokolle für Details an."
+
 -- We tried to communicate with the LLM provider '{0}' (type={1}). Something was not found. The provider message is: '{2}'
 UI_TEXT_CONTENT["AISTUDIO::PROVIDER::BASEPROVIDER::T3014737766"] = "Wir haben versucht, mit dem LLM-Anbieter „{0}“ (Typ={1}) zu kommunizieren. Etwas wurde nicht gefunden. Die Nachricht des Anbieters lautet: „{2}“"
 
@@ -9243,11 +9255,11 @@ UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGAVAILABILITYEXTE
 -- Tool calling for this provider is not implemented yet.
 UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGAVAILABILITYEXTENSIONS::T3776963202"] = "Werkzeug-Aufruf für diesen Anbieter ist noch nicht implementiert."
 
--- (Optional) Host allowlist for private or VPN web pages. For security reasons, private or VPN web pages aren't allowed to be read by default. Separate host patterns with commas, such as example.de, *.example.de. Allowed private hosts require a high-confidence provider. For allowed internal hosts, AI Studio also tries the operating system's default sign-in automatically when the server responds with integrated authentication.
-UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T1410249500"] = "(Optional) Host-Whitelist für private oder VPN-Webseiten. Aus Sicherheitsgründen dürfen private oder VPN-Webseiten standardmäßig nicht gelesen werden. Trennen Sie Host-Muster durch Kommas, z. B. example.de, *.example.de. Erlaubte private Hosts erfordern einen Anbieter mit hoher Zuverlässigkeit. Für erlaubte interne Hosts versucht AI Studio außerdem automatisch die Standard-Anmeldung des Betriebssystems, wenn der Server mit integrierter Authentifizierung antwortet."
-
 -- Allowed private hosts must be host names only, without scheme or path.
 UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T2196457612"] = "Zulässige private Hosts dürfen nur Hostnamen enthalten, ohne Schema oder Pfad."
+
+-- The web page was not loaded because private or VPN web pages require a High-confidence provider or a provider trusted by your organization's configuration.
+UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T2563437007"] = "Die Webseite wurde nicht geladen, da private oder VPN-Webseiten einen Anbieter mit hoher Vertrauenswürdigkeit oder einen von der Organisationskonfiguration vertrauten Anbieter erfordern."
 
 -- Maximum Content Characters
 UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T2801581200"] = "Maximale Inhaltszeichen"
@@ -9267,8 +9279,8 @@ UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS:
 -- Load a web page and extract its readable content, links, and page details.
 UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T3715690061"] = "Laden Sie eine Webseite und extrahieren Sie deren lesbaren Inhalt, Links und Seitendetails."
 
--- The web page was not loaded because private or VPN web pages require a High-confidence provider.
-UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T3856267430"] = "Die Webseite wurde nicht geladen, da private Webseiten oder Webseiten über ein VPN einen Anbieter mit hoher Vertrauensstufe erfordern."
+-- (Optional) Host allowlist for private or VPN web pages. For security reasons, private or VPN web pages aren't allowed to be read by default. Separate host patterns with commas, such as example.de, *.example.de. Allowed private hosts require a High-confidence provider or a provider trusted by your organization's configuration. For allowed HTTPS internal hosts, AI Studio also tries the operating system's default sign-in automatically when the server responds with integrated authentication.
+UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T3802894016"] = "(Optional) Allowlist für Hosts von privaten oder VPN-Webseiten. Aus Sicherheitsgründen ist der Zugriff auf private oder VPN-Webseiten standardmäßig nicht erlaubt. Trennen Sie Host-Muster durch Kommas, z. B. example.de, *.example.de. Für erlaubte private Hosts ist ein Anbieter mit hohem Vertrauenslevel oder ein von Ihrer Organisation freigegebener Anbieter erforderlich. Bei erlaubten internen HTTPS-Hosts versucht AI Studio automatisch die Standardanmeldung des Betriebssystems, wenn der Server mit integrierter Authentifizierung antwortet."
 
 -- (Optional) HTTP timeout for loading a web page in seconds.
 UI_TEXT_CONTENT["AISTUDIO::TOOLS::TOOLCALLINGSYSTEM::TOOLCALLINGIMPLEMENTATIONS::READWEBPAGETOOL::T4126164830"] = "(Optional) HTTP-Timeout zum Laden einer Webseite in Sekunden."
