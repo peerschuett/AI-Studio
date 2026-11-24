@@ -103,6 +103,7 @@ public partial class ChatComponent : MSGComponentBase
     private DataSourceSelection? dataSourceSelectionComponent;
     private DataSourceOptions earlyDataSourceOptions = new();
     private DataSourceOptions lastAppliedAutomaticDataSourceOptions = new();
+    private bool hasAutomaticDataSourceOptionsChangedDuringAnswer;
     private Profile currentProfile = Profile.NO_PROFILE;
     private ChatTemplate currentChatTemplate = ChatTemplate.NO_CHAT_TEMPLATE;
     private bool hasUnsavedChanges;
@@ -1079,11 +1080,21 @@ public partial class ChatComponent : MSGComponentBase
     {
         var automaticOptions = this.GetAutomaticDataSourceOptions();
         this.lastAppliedAutomaticDataSourceOptions = automaticOptions.CreateCopy();
+        this.hasAutomaticDataSourceOptionsChangedDuringAnswer = false;
         this.earlyDataSourceOptions = automaticOptions;
         this.ChatThread?.DataSourceOptions = automaticOptions;
         this.dataSourceSelectionComponent?.ChangeOptionWithoutSaving(automaticOptions);
     }
 
+    /// <summary>
+    /// Takes over the data source options a chat would start with right now, after the configuration changed.
+    /// </summary>
+    /// <remarks>
+    /// A started chat follows only while it still uses the options it started with. Not while the AI
+    /// answers, though: the answer works with the options of its message, and storing the chat would
+    /// store the answer unfinished. The change then waits until the answer is over, see
+    /// ApplyAutomaticDataSourceOptionsChangedDuringAnswer.
+    /// </remarks>
     private async Task ApplyUpdatedAutomaticDataSourceOptionsAfterConfigurationChange()
     {
         //
@@ -1092,15 +1103,24 @@ public partial class ChatComponent : MSGComponentBase
         // use would say nothing about it.
         //
         var updatedAutomaticOptions = this.GetAutomaticDataSourceOptions();
-        var previousAutomaticOptions = this.lastAppliedAutomaticDataSourceOptions;
-        this.lastAppliedAutomaticDataSourceOptions = updatedAutomaticOptions.CreateCopy();
-
         if (this.ChatThread is null)
         {
+            this.lastAppliedAutomaticDataSourceOptions = updatedAutomaticOptions.CreateCopy();
             this.earlyDataSourceOptions = updatedAutomaticOptions;
             this.dataSourceSelectionComponent?.ChangeOptionWithoutSaving(updatedAutomaticOptions);
             return;
         }
+
+        // The options applied last stay as they are, so that the comparison below still works once the answer is over:
+        if (this.IsCurrentChatStreaming)
+        {
+            this.hasAutomaticDataSourceOptionsChangedDuringAnswer = true;
+            return;
+        }
+
+        this.hasAutomaticDataSourceOptionsChangedDuringAnswer = false;
+        var previousAutomaticOptions = this.lastAppliedAutomaticDataSourceOptions;
+        this.lastAppliedAutomaticDataSourceOptions = updatedAutomaticOptions.CreateCopy();
 
         if (!DataSourceOptionsAreEqual(this.ChatThread.DataSourceOptions, previousAutomaticOptions))
             return;
@@ -1108,6 +1128,17 @@ public partial class ChatComponent : MSGComponentBase
         await this.SetCurrentDataSourceOptions(updatedAutomaticOptions);
         this.dataSourceSelectionComponent?.ChangeOptionWithoutSaving(updatedAutomaticOptions, this.ChatThread.AISelectedDataSources);
         await this.ChatThreadChanged.InvokeAsync(this.ChatThread);
+    }
+
+    /// <summary>
+    /// Takes over the data source options which changed while the AI answered, once the answer is over.
+    /// </summary>
+    private async Task ApplyAutomaticDataSourceOptionsChangedDuringAnswer()
+    {
+        if (!this.hasAutomaticDataSourceOptionsChangedDuringAnswer || this.IsCurrentChatStreaming)
+            return;
+
+        await this.ApplyUpdatedAutomaticDataSourceOptionsAfterConfigurationChange();
     }
 
     private static bool DataSourceOptionsAreEqual(DataSourceOptions left, DataSourceOptions right)
@@ -2415,6 +2446,9 @@ public partial class ChatComponent : MSGComponentBase
         this.hasUnsavedChanges = false;
         this.ComposerState.Clear();
 
+        // A change of the data sources which waited for the answer of the chat being left belongs to that chat:
+        this.hasAutomaticDataSourceOptionsChangedDuringAnswer = false;
+
         if (this.ChatThread is not null)
         {
             this.ChatThread = this.AIJobService.TryGetLiveChatThread(this.ChatThread.ChatId) ?? this.ChatThread;
@@ -2940,6 +2974,9 @@ public partial class ChatComponent : MSGComponentBase
                         // The job stored the answer only while chats are stored automatically, see AIJobService.CheckpointChatAsync:
                         this.hasUnsavedChanges = this.SettingsManager.ConfigurationData.Workspace.StorageBehavior is not WorkspaceStorageBehavior.STORE_CHATS_AUTOMATICALLY;
                         this.previousInputForbidden = true;
+
+                        // A chat template edited meanwhile may change the data sources of this chat now:
+                        await this.ApplyAutomaticDataSourceOptionsChangedDuringAnswer();
                     }
 
                     this.StateHasChanged();
