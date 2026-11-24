@@ -25,6 +25,27 @@ public sealed class ChatComposerState
         this.HasUserDraft = false;
     }
 
+    /// <summary>
+    /// Fills the composer anew after the chat template of the chat changed, e.g., because the user edited it.
+    /// </summary>
+    /// <remarks>
+    /// The message and the attachments of a chat template belong to the first message of a chat only.
+    /// Once the chat has started, an edited template must not bring them back into the composer: they
+    /// would be sent a second time. A message the user started always stays.
+    /// </remarks>
+    /// <param name="previousChatTemplate">The chat template the composer was filled with.</param>
+    /// <param name="chatTemplate">The chat template of the chat now.</param>
+    /// <param name="hasChatStarted">Whether the chat already holds a message the user sees.</param>
+    /// <returns>True when the composer was filled anew.</returns>
+    public bool ApplyChangedTemplate(ChatTemplate previousChatTemplate, ChatTemplate chatTemplate, bool hasChatStarted)
+    {
+        if (hasChatStarted || this.HasUserDraft || previousChatTemplate == chatTemplate)
+            return false;
+
+        this.ApplyTemplate(chatTemplate);
+        return true;
+    }
+
     public void SetUserInput(string? userInput)
     {
         this.UserInput = userInput ?? string.Empty;

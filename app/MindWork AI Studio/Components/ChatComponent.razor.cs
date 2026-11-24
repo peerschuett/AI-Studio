@@ -1241,8 +1241,8 @@ public partial class ChatComponent : MSGComponentBase
             this.currentChatTemplate = this.SettingsManager.GetChatTemplateById(this.ChatThread.SelectedChatTemplate);
         }
 
-        if (!this.ComposerState.HasUserDraft && previousChatTemplate != this.currentChatTemplate)
-            this.ComposerState.ApplyTemplate(this.currentChatTemplate);
+        // Once the chat has started, an edited chat template no longer fills the composer, see ChatComposerState.ApplyChangedTemplate:
+        this.ComposerState.ApplyChangedTemplate(previousChatTemplate, this.currentChatTemplate, hasChatStarted: this.CanThreadBeSaved);
 
         await this.ApplyUpdatedAutomaticDataSourceOptionsAfterConfigurationChange();
     }
