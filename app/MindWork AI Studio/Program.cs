@@ -225,6 +225,7 @@ internal sealed class Program
         builder.Services.AddSingleton<IToolCallingLoop, ToolCallingLoop>();
         builder.Services.AddSingleton<ThreadSafeRandom>();
         builder.Services.AddSingleton<AIJobService>();
+        builder.Services.AddSingleton<DeferredChatDataSourceChanges>();
         builder.Services.AddSingleton<AssistantSessionService>();
         builder.Services.AddSingleton<VoiceRecordingAvailabilityService>();
         builder.Services.AddSingleton<GlobalShortcutService>();
